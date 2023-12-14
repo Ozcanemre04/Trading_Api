@@ -63,9 +63,7 @@ namespace trading_app.services
             string UserId = _httpContextAccessor!.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
             var SumOfWire = await _dbcontext.Wires.Where(x => x.UserId == UserId).SumAsync(x => x.Amount);
             var trade = await _dbcontext.Trades.Where(x => x.UserId == UserId).Select(trade => (trade.Close_price!.Value - trade.Open_price) * trade.Quantity).SumAsync();
-            var OpenPnl = await _dbcontext.Trades.Where(x => x.UserId == UserId && x.Open == true)
-                                                 .Select(trade => trade.Open_price * trade.Quantity)
-                                                 .SumAsync();
+            Log.Information("{trade}", trade);
             var balance = SumOfWire + trade;
 
             return balance;
