@@ -19,6 +19,8 @@ namespace trading_app.services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IMapper _mapper;
         private readonly HttpClient _httpClient;
+
+
         public TradeService(ApplicationDbContext dbContext, IHttpContextAccessor httpContextAccessor,
          UserManager<ApplicationUser> userManager, IMapper mapper, HttpClient httpClient)
         {
@@ -27,11 +29,12 @@ namespace trading_app.services
             _userManager = userManager;
             _mapper = mapper;
             _httpClient = httpClient;
+
         }
 
         public async Task<IEnumerable<TradeDto>> AllTrades()
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            string userId = GetUserId();
             var allTrades = await _dbcontext.Trades.Where(x => x.UserId == userId).ToListAsync();
             var tradesDto = allTrades.Select(trade => _mapper.Map<TradeDto>(trade));
             return tradesDto;
@@ -39,7 +42,7 @@ namespace trading_app.services
 
         public async Task<TradeDto> GetOneTrade(Guid id)
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            string userId = GetUserId();
             var Trade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
             var tradeDto = _mapper.Map<TradeDto>(Trade);
             return tradeDto;
@@ -48,7 +51,7 @@ namespace trading_app.services
 
         public async Task<IEnumerable<TradeDto>> GetAllOpenTrades()
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            string userId = GetUserId();
             var allTrades = await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == true).ToListAsync();
             var tradesDto = allTrades.Select(trade => _mapper.Map<TradeDto>(trade));
             return tradesDto;
@@ -56,7 +59,7 @@ namespace trading_app.services
 
         public async Task<IEnumerable<TradeDto>> GetAllClosedTrades()
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+            string userId = GetUserId();
             var allTrades = await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == false).ToListAsync();
             var tradesDto = allTrades.Select(trade => _mapper.Map<TradeDto>(trade));
             return tradesDto;
@@ -64,11 +67,7 @@ namespace trading_app.services
 
         public async Task<PnlDto> GetOpenpnl()
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-            var OpenPnl = await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == true)
-                                                .Select(trade => trade.Open_price * trade.Quantity).ToListAsync();
-
-
+            var OpenPnl = await GetPNL(true);
             decimal OpenPnll = OpenPnl.DefaultIfEmpty(0.00m).Sum();
             var openPnlDto = new PnlDto
             {
@@ -79,28 +78,20 @@ namespace trading_app.services
         }
         public async Task<PnlDto> GetClosedpnl()
         {
-            string userId = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-            var ClosePnl = await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == false)
-                                                 .Select(trade => trade.Close_price!.Value * trade.Quantity)
-                                                 .ToListAsync();
+            var ClosePnl = await GetPNL(false);
             decimal ClosePnll = ClosePnl.DefaultIfEmpty(0.00m).Sum();
             var ClosePnlDto = new PnlDto
             {
                 Pnl = ClosePnll,
                 Open = false
             };
-            var tradePrice = await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == false)
-                                                 .Select(trade => trade.Close_price!.Value * trade.Quantity)
-                                                 .SumAsync();
-
-            Log.Information("{@tradePrice}", tradePrice);
 
             return ClosePnlDto;
         }
 
         public async Task<TradeDto> OpenTrade(AddTradeDto addTradeDto)
         {
-            string UserId = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            string UserId = GetUserId();
             var user = await _userManager.FindByIdAsync(UserId);
             var wire = await _dbcontext.Wires.Where(x => x.UserId == UserId).SumAsync(x => x.Amount);
             var tradePrice = await _dbcontext.Trades.Where(x => x.UserId == UserId).Select(trade => (trade.Close_price - trade.Open_price) * trade.Quantity).SumAsync();
@@ -132,7 +123,7 @@ namespace trading_app.services
 
         public async Task<TradeDto> CloseTrade(Guid id)
         {
-            string UserId = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            string UserId = GetUserId();
             var user = await _userManager.FindByIdAsync(UserId);
             var findTrade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == UserId && x.Open == true) ?? throw new Exception("not found or already closed");
             var data = await Get_realtime_price(findTrade.Symbol);
@@ -142,6 +133,17 @@ namespace trading_app.services
             await _dbcontext.SaveChangesAsync();
             var TradeDto = _mapper.Map<TradeDto>(findTrade);
             return TradeDto;
+        }
+        private string GetUserId()
+        {
+            return _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        }
+        private async Task<List<decimal>> GetPNL(bool isOpen)
+        {
+            var userId = GetUserId();
+            return await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == false)
+                                                 .Select(trade => (isOpen ? trade.Open_price : trade.Close_price!.Value) * trade.Quantity)
+                                                 .ToListAsync();
         }
 
         private async Task<decimal> Get_realtime_price(string symbol)

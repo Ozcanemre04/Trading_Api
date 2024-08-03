@@ -27,10 +27,13 @@ namespace trading_app.services
         }
         public async Task<WireDto> CreateWire(AddWireDto addWireDto)
         {
-            string UserId = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+            string UserId = GetUserId();
             var user = await _userManager.FindByIdAsync(UserId);
-            var SumOfWire = await _dbcontext.Wires.Where(x => x.UserId == UserId).SumAsync(x => x.Amount);
-            var tradePrice = await _dbcontext.Trades.Where(x => x.UserId == UserId).Select(trade => (trade.Close_price - trade.Open_price) * trade.Quantity).SumAsync();
+            var SumOfWire = await GetSumOfWire();
+            var tradePrice = await _dbcontext.Trades.Where(x => x.UserId == UserId)
+                                                    .Select(trade => (trade.Close_price - trade.Open_price) * trade.Quantity)
+                                                    .SumAsync();
+
             var OpenPnl = await _dbcontext.Trades.Where(x => x.UserId == UserId && x.Open == true)
                                                  .Select(trade => trade.Open_price * trade.Quantity)
                                                  .SumAsync();
@@ -60,13 +63,24 @@ namespace trading_app.services
 
         public async Task<decimal> CurrentBalance()
         {
-            string UserId = _httpContextAccessor!.HttpContext!.User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var SumOfWire = await _dbcontext.Wires.Where(x => x.UserId == UserId).SumAsync(x => x.Amount);
+            string UserId = GetUserId();
+            var SumOfWire = await GetSumOfWire();
             var trade = await _dbcontext.Trades.Where(x => x.UserId == UserId && x.Open == false).Select(trade => (trade.Close_price!.Value - trade.Open_price) * trade.Quantity).SumAsync();
             Log.Information("{trade}", trade);
             var balance = SumOfWire + trade;
 
             return balance;
+        }
+
+        private string GetUserId()
+        {
+            return _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        }
+        private async Task<decimal> GetSumOfWire()
+        {
+            string userId = GetUserId();
+            return await _dbcontext.Wires.Where(x => x.UserId == userId).SumAsync(x => x.Amount);
+
         }
     }
 }
