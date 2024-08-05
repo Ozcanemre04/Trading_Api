@@ -12,7 +12,7 @@ namespace trading_app.interfaces.IServices
 
         Task<LoginResponseDto> Login(LoginDto loginDto);
 
-        Task<string> RefreshToken();
-        Task<string> Logout();
+        Task<LoginResponseDto> RefreshToken(RefreshTokenDto refreshTokenDto);
+        
     }
 }

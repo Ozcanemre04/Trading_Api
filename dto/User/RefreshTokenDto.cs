@@ -5,9 +5,8 @@ using System.Threading.Tasks;
 
 namespace trading_app.dto.User
 {
-    public class LoginResponseDto
+    public class RefreshTokenDto
     {
-        public string? Message { get; set; }
         public string? AccessToken { get; set; }
         public string? refreshToken { get; set; }
     }

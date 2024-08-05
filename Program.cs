@@ -10,6 +10,7 @@ using trading_app.models;
 using trading_app.interfaces.IServices;
 using trading_app.services;
 using trading_app.interfaces;
+using trading_app.Middleware;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,9 +61,9 @@ builder.Services.AddAuthentication(options=>
     options.SaveToken = true;
     options.RequireHttpsMetadata= false;
     options.TokenValidationParameters=new TokenValidationParameters(){
-        ValidateActor=true,
-        ValidateIssuer=true,
-        ValidateAudience=true,
+        ValidateActor=false,
+        ValidateIssuer=false,
+        ValidateAudience=false,
         RequireExpirationTime=true,
         ValidateIssuerSigningKey=true,
         ValidIssuer=builder.Configuration.GetSection("JWT:Issuer").Value,
@@ -101,6 +102,14 @@ builder.Services.AddSwaggerGen(option =>
     });
 });
 
+builder.Services.AddCors(options =>
+  options.AddPolicy("first", builder=>
+  {
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader();
+  })
+);
 //serilog
 Log.Logger =new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -115,11 +124,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.Run();

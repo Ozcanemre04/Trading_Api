@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using trading_app.data;
 using trading_app.dto.User;
+using trading_app.exceptions;
 using trading_app.interfaces.IServices;
 using trading_app.models;
 using trading_app.Validator.User;
@@ -36,33 +37,41 @@ namespace trading_app.services
         public async Task<RegisterResponseDto> Register(RegisterDto registerDto)
         {
             var userAlreadyExist = await _userManager.FindByEmailAsync(registerDto.Email!);
+            var UsernameTaken = await _userManager.FindByNameAsync(registerDto.Username!);
+            
+            
 
             if (userAlreadyExist != null)
             {
-                throw new Exception("email already exist");
+                throw new BadRequestException("email already exist");
             }
+            if(UsernameTaken != null)
+            {
+               throw new BadRequestException("UserName already taken ");
+            } 
             var identityUser = _mapper.Map<ApplicationUser>(registerDto);
             var result = await _userManager.CreateAsync(identityUser, registerDto.Password!);
+            
             var validator = new RegisterValidator();
             var validationResult = await validator.ValidateAsync(registerDto);
             if (!validationResult.IsValid)
             {
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
-                throw new Exception(string.Join(Environment.NewLine, errorMessage));
+                throw new BadRequestException(string.Join("|", errorMessage));
             }
-            if (!result.Succeeded)
-            {
-                var errorString = "";
-                foreach (var error in result.Errors)
-                {
-                    errorString += error.Description;
-                }
-                return new RegisterResponseDto()
-                {
-                    IsSucceed = false,
-                    Message = errorString,
-                };
-            }
+            // if (!result.Succeeded)
+            // {
+            //     var errorString = "";
+            //     foreach (var error in result.Errors)
+            //     {
+            //         errorString += error.Description;
+            //     }
+            //     return new RegisterResponseDto()
+            //     {
+            //         IsSucceed = false,
+            //         Message = errorString,
+            //     };
+            // }
 
             var registerResponseDto = _mapper.Map<RegisterResponseDto>(identityUser);
 
@@ -74,110 +83,90 @@ namespace trading_app.services
         //login
         public async Task<LoginResponseDto> Login(LoginDto loginDto)
         {
-            var Identity = await _userManager.FindByEmailAsync(loginDto.Email!) ?? throw new Exception("user doesn't exist");
-            var refresh = await _dbContext.RefreshToken.FirstOrDefaultAsync(x => x.UserId == Identity!.Id);
+            var response = new LoginResponseDto();
+            var Identity = await _userManager.FindByEmailAsync(loginDto.Email!) ?? throw new NotFoundException("user doesn't exist");
+            
 
             var verifyPassword = await _userManager.CheckPasswordAsync(Identity, loginDto.Password!);
             if (!verifyPassword)
             {
-                throw new Exception("wrong password");
+                throw new BadRequestException("wrong password");
             };
-            if (Identity.Refreshtoken != null)
-            {
-                var token0 = GenerateToken(Identity);
-                refresh!.Refreshtoken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(100));
-                refresh.Expires = DateTime.Now.AddDays(7);
-                await _dbContext.SaveChangesAsync();
-                SetRefreshToken(refresh);
-                return new LoginResponseDto()
-                {
-                    Message = "Success",
-                    AccessToken = token0,
-                };
-            };
+            
             var validator = new LoginValidator();
             var validationResult = await validator.ValidateAsync(loginDto);
             if (!validationResult.IsValid)
             {
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
-                throw new Exception(string.Join(Environment.NewLine, errorMessage));
+                throw new BadRequestException(string.Join("|", errorMessage));
             }
-            var refreshToken = new RefreshToken
-            {
-                Refreshtoken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(100)),
-                Expires = DateTime.Now.AddDays(7),
-                UserId = Identity.Id,
-                applicationUser = Identity
-            };
+            
 
-            _dbContext.RefreshToken.Add(refreshToken);
-            await _dbContext.SaveChangesAsync();
-            SetRefreshToken(refreshToken);
+            string token = this.GenerateToken(Identity);
+            response.Message ="Success";
+            response.AccessToken = token;
+            response.refreshToken = this.GenerateRefreshToken();
 
-            string token = GenerateToken(Identity);
-            return new LoginResponseDto()
-            {
-                Message = "Success",
-                AccessToken = token
-            };
-
+            Identity.Refreshtoken = response.refreshToken;
+            Identity.RefreshTokenExpireTime = DateTime.Now.AddHours(12);
+            await _userManager.UpdateAsync(Identity);
+            return response;
         }
 
 
-        //logout
-        public async Task<string> Logout()
-        {
-            var userid = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
-            var user = await _userManager.FindByIdAsync(userid);
-            var refresh = await _dbContext.RefreshToken.FirstOrDefaultAsync(x => x.UserId == userid);
-
-            if (refresh != null)
-            {
-                _dbContext.RefreshToken.Remove(refresh);
-                await _dbContext.SaveChangesAsync();
-                _httpContextAccessor?.HttpContext?.Response.Cookies.Delete("refreshToken");
-                var msg = "cookie deleted";
-                return msg;
-            }
-            else
-            {
-                var errorMessage = "cookie not found";
-                return errorMessage;
-            }
-        }
 
 
         //refreshToken
-        public async Task<string> RefreshToken()
+        public async Task<LoginResponseDto> RefreshToken(RefreshTokenDto refreshTokenDto)
         {
-            var GetRefreshtoken = _httpContextAccessor!.HttpContext!.Request.Cookies["refreshToken"];
             var userid = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-            var user = await _userManager.FindByIdAsync(userid);
-            var refresh = await _dbContext.RefreshToken.FirstOrDefaultAsync(x => x.UserId == userid);
-            if (refresh?.Refreshtoken == null)
-            {
-                string msg = "refresh token is null";
-                return msg;
+            var Identity = await _userManager.FindByIdAsync(userid) ?? throw new NotFoundException("user doesn't exist");
+            
+
+            var principal = GetTokenPrincipal(refreshTokenDto.AccessToken);
+            var response = new LoginResponseDto();
+            if(principal.Identity.Name is null){
+                throw new BadRequestException("identity is null");
             }
-            if (!refresh.Refreshtoken.Equals(GetRefreshtoken))
+            if(Identity is null || Identity.Refreshtoken != refreshTokenDto.refreshToken || Identity.RefreshTokenExpireTime < DateTime.Now)
             {
-                string msg = "Invalid refresh Token";
-                return msg;
+                throw new BadRequestException("wrong refresh token or refreshToken expired");
             }
-            else if (refresh?.Expires < DateTime.Now)
-            {
-                string msg = "Token expired";
-                return msg;
-            }
-            string token = GenerateToken(user!);
-            refresh!.Refreshtoken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(100));
-            refresh.Expires = DateTime.Now.AddDays(7);
-            await _dbContext.SaveChangesAsync();
-            SetRefreshToken(refresh);
-            return token;
+            response.Message ="Success";
+            response.AccessToken = this.GenerateToken(Identity);
+            response.refreshToken = this.GenerateRefreshToken();
+
+            Identity.Refreshtoken = response.refreshToken;
+            Identity.RefreshTokenExpireTime = DateTime.Now.AddHours(12);
+            await _userManager.UpdateAsync(Identity);
+
+            return response;
+      
 
         }
 
+        private string GenerateRefreshToken()
+        {
+            var randonNumber = new Byte[64];
+            using (var numberGenerator = RandomNumberGenerator.Create())
+            {
+                numberGenerator.GetBytes(randonNumber);
+            }
+            return Convert.ToBase64String(randonNumber);
+        }
+        private ClaimsPrincipal GetTokenPrincipal(string token)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("JWT:Key").Value));
+            var validation = new TokenValidationParameters
+            {
+              IssuerSigningKey = securityKey,
+              ValidateLifetime = false,
+              ValidateActor = false,
+              ValidateIssuer = false,
+              ValidateAudience = false,
+            };
+            return new JwtSecurityTokenHandler().ValidateToken(token,validation,out _);
+        }
 
         private string GenerateToken(ApplicationUser user)
         {
@@ -203,17 +192,6 @@ namespace trading_app.services
             return token;
         }
 
-        private void SetRefreshToken(RefreshToken newToken)
-        {
-            var cookieOptions = new CookieOptions
-            {
-                HttpOnly = true,
-                Expires = newToken.Expires,
-            };
-            _httpContextAccessor?.HttpContext?.Response.Cookies.Append("refreshToken", newToken.Refreshtoken, cookieOptions);
-
-        }
-
-
+        
     }
 }

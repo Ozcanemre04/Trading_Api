@@ -10,7 +10,7 @@ namespace trading_app.data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options){
                    
         }
-        public required DbSet<RefreshToken> RefreshToken {get;set;}
+        
         public required DbSet<Trade> Trades {get;set;}
         public required DbSet<Wire> Wires {get;set;}
 
@@ -20,10 +20,6 @@ namespace trading_app.data
               modelBuilder.Entity<ApplicationUser>()
                           .HasKey(i=>i.Id);
 
-             modelBuilder.Entity<ApplicationUser>()
-                         .HasOne<RefreshToken>(t => t.Refreshtoken)
-                         .WithOne(user=>user.applicationUser)
-                         .HasForeignKey<RefreshToken>(key => key.UserId);
 
             modelBuilder.Entity<ApplicationUser>()
                         .HasMany<Wire>(w => w.Wires)

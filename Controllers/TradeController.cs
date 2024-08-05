@@ -24,66 +24,35 @@ namespace trading_app.Controllers
         [Authorize]
         public async Task<ActionResult<TradeDto>> AllTrade()
         {
-            try
-            {
-                var response = await _tradeService.AllTrades();
-                return Ok(response);
-
-            }
-            catch
-            {
-                return BadRequest();
-            }
+            var response = await _tradeService.AllTrades();
+            return Ok(response);
         }
 
         [HttpGet("{id:Guid}")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> OneTrade([FromRoute] Guid id)
         {
-            try
-            {
 
-                var response = await _tradeService.GetOneTrade(id);
-                if (response == null)
-                {
-                    return NotFound();
-                }
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+            return Ok(await _tradeService.GetOneTrade(id));
         }
 
         [HttpGet("open_trade")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> AllOpenTrade()
         {
-            try
-            {
-                var response = await _tradeService.GetAllOpenTrades();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+
+            var response = await _tradeService.GetAllOpenTrades();
+            return Ok(response);
+
         }
 
         [HttpGet("closed_trade")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> AllClosedTrade()
         {
-            try
-            {
-                var response = await _tradeService.GetAllClosedTrades();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+
+            var response = await _tradeService.GetAllClosedTrades();
+            return Ok(response);
 
         }
 
@@ -91,66 +60,38 @@ namespace trading_app.Controllers
         [Authorize]
         public async Task<ActionResult<TradeDto>> OpenPnl()
         {
-            try
-            {
-                var response = await _tradeService.GetOpenpnl();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+
+            var response = await _tradeService.GetOpenpnl();
+            return Ok(response);
+
+
         }
+
         [HttpGet("closed_pnl")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> ClosePnl()
         {
-            try
-            {
-                var response = await _tradeService.GetClosedpnl();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+
+            var response = await _tradeService.GetClosedpnl();
+            return Ok(response);
+
+
         }
 
         [HttpPost("Open_trade")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> OpenTrade(AddTradeDto addTradeDto)
         {
-            try
-            {
-
-                var response = await _tradeService.OpenTrade(addTradeDto);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var response = await _tradeService.OpenTrade(addTradeDto);
+            return Ok(response);
         }
+
         [HttpPut("Close_trade")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> CloseTrade(Guid id)
         {
-            try
-            {
-                var response = await _tradeService.CloseTrade(id);
-                return Ok(response);
-
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message == "not found or already closed")
-                {
-
-                    return NotFound(ex.Message);
-                }
-                return BadRequest(ex.Message);
-
-            }
+            var response = await _tradeService.CloseTrade(id);
+            return Ok(response);
         }
     }
 }

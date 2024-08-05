@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using trading_app.data;
 using trading_app.dto.Wire;
+using trading_app.exceptions;
 using trading_app.interfaces;
 using trading_app.models;
 using trading_app.Validator.Wire;
@@ -41,7 +42,7 @@ namespace trading_app.services
             Log.Information("{a}", sum);
             if (SumOfWire + tradePrice - OpenPnl + addWireDto.Amount < 0.00M && addWireDto.Withdrawal == true)
             {
-                throw new Exception("not enough money ");
+                throw new BadRequestException("not enough money ");
             }
 
             var wire = _mapper.Map<Wire>(addWireDto);
@@ -56,7 +57,7 @@ namespace trading_app.services
             if (!validationResult.IsValid)
             {
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
-                throw new Exception(string.Join(Environment.NewLine, errorMessage));
+                throw new BadRequestException(string.Join("|", errorMessage));
             }
             return WireDto;
         }

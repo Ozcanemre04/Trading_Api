@@ -23,88 +23,29 @@ namespace trading_app.Controllers
         [HttpPost("register")]
         public async Task<ActionResult<RegisterResponseDto>> Register([FromBody] RegisterDto registerDto)
         {
-            try
-            {
-
-                var response = await _authServices.Register(registerDto);
-                if (response.IsSucceed)
-                {
-                    return Ok(response);
-                }
-                return BadRequest(response);
-
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+     
+            var response = await _authServices.Register(registerDto);
+            return Ok(response);
+     
         }
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginDto loginDto)
         {
-            try
-            {
-
-                var response = await _authServices.Login(loginDto);
-
-                return Ok(response);
-
-            }
-            catch (Exception ex)
-            {
-                if (ex.Message == "user doesn't exist")
-                {
-                    return NotFound(ex.Message);
-                }
-                if (ex.Message == "wrong password")
-                {
-                    return Unauthorized(ex.Message);
-                }
-                return BadRequest(ex.Message);
-            }
+            var response = await _authServices.Login(loginDto);
+            return Ok(response);
         }
 
         [HttpPost("refreshToken")]
         [Authorize]
-        public async Task<IActionResult> RefreshToken()
+        public async Task<ActionResult<LoginResponseDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
-            try
-            {
-                var response = await _authServices.RefreshToken();
-                if (response == "Invalid refresh Token" || response == "Token expired")
-                {
-                    return BadRequest(response);
-                }
-                else if (response == "Token")
-                {
-                    return Unauthorized(response);
-                }
+           
+                var response = await _authServices.RefreshToken(refreshTokenDto);
                 return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+           
         }
 
-        [HttpGet("logout")]
-        [Authorize]
-        public async Task<IActionResult> Logout()
-        {
-            try
-            {
-                var response = await _authServices.Logout();
-                if (response == "cookie not found")
-                {
-                    return NotFound(response);
-                }
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
-        }
+        
     }
 
 }

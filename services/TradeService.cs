@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Newtonsoft.Json;
 using trading_app.Validator.Trade;
+using trading_app.exceptions;
 
 namespace trading_app.services
 {
@@ -43,7 +44,7 @@ namespace trading_app.services
         public async Task<TradeDto> GetOneTrade(Guid id)
         {
             string userId = GetUserId();
-            var Trade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId);
+            var Trade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId) ?? throw new NotFoundException("trade is not found");
             var tradeDto = _mapper.Map<TradeDto>(Trade);
             return tradeDto;
         }
@@ -104,11 +105,11 @@ namespace trading_app.services
             if (!validationResult.IsValid)
             {
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
-                throw new Exception(string.Join(Environment.NewLine, errorMessage));
+                throw new BadRequestException(string.Join("|", errorMessage));
             }
             if (wire + tradePrice - OpenPnl - (data * addTradeDto.Quantity) < 0.00m)
             {
-                throw new Exception("not enough money");
+                throw new BadRequestException("not enough money");
             }
 
             var openTrade = _mapper.Map<Trade>(addTradeDto);
@@ -125,7 +126,7 @@ namespace trading_app.services
         {
             string UserId = GetUserId();
             var user = await _userManager.FindByIdAsync(UserId);
-            var findTrade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == UserId && x.Open == true) ?? throw new Exception("not found or already closed");
+            var findTrade = await _dbcontext.Trades.FirstOrDefaultAsync(x => x.Id == id && x.UserId == UserId && x.Open == true) ?? throw new NotFoundException("not found or already closed");
             var data = await Get_realtime_price(findTrade.Symbol);
             findTrade.Close_price = data;
             findTrade.Close_datetime = DateTime.Now;
@@ -141,7 +142,7 @@ namespace trading_app.services
         private async Task<List<decimal>> GetPNL(bool isOpen)
         {
             var userId = GetUserId();
-            return await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == false)
+            return await _dbcontext.Trades.Where(x => x.UserId == userId && x.Open == isOpen)
                                                  .Select(trade => (isOpen ? trade.Open_price : trade.Close_price!.Value) * trade.Quantity)
                                                  .ToListAsync();
         }
@@ -149,7 +150,7 @@ namespace trading_app.services
         private async Task<decimal> Get_realtime_price(string symbol)
         {
             var url = $"https://data.messari.io/api/v1/assets/{symbol}/metrics/market-data";
-            var response = await _httpClient.GetStringAsync(url) ?? throw new Exception("not found");
+            var response = await _httpClient.GetStringAsync(url) ?? throw new NotFoundException("not found");
             dynamic marketData = JsonConvert.DeserializeObject(response)!;
             decimal price = marketData?.data.market_data.price_usd;
             return price;

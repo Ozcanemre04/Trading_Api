@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using trading_app.data;
 using trading_app.dto.Profile;
+using trading_app.exceptions;
 using trading_app.interfaces;
 using trading_app.models;
 using trading_app.Validator.User;
@@ -34,7 +36,6 @@ namespace trading_app.services
         {
             string UserId = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
             var user = await _userManager.FindByIdAsync(UserId);
-
             var CurrentBalance = Getbalance(UserId);
             var profileDto = _mapper.Map<ProfileDto>(user);
             profileDto.CurrentBalance = await CurrentBalance;
@@ -56,7 +57,7 @@ namespace trading_app.services
             if (!validationResult.IsValid)
             {
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
-                throw new Exception(string.Join(Environment.NewLine, errorMessage));
+                throw new BadRequestException(string.Join("|", errorMessage));
             }
             return updateProfileDto;
         }

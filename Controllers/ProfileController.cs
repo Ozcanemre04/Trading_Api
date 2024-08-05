@@ -24,30 +24,16 @@ namespace trading_app.Controllers
         [Authorize]
         public async Task<ActionResult<ProfileDto>> Profile()
         {
-            try
-            {
-                var response = await _profileService.Profile();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+            var response = await _profileService.Profile();
+            return Ok(response);  
         }
+
         [HttpPatch]
         [Authorize]
         public async Task<ActionResult<ProfileDto>> UpdateProfile([FromBody] ProfileUpdateDto profileUpdateDto)
         {
-            try
-            {
-                var response = await _profileService.UpdateProfile(profileUpdateDto);
-                return Ok(response);
-
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var response = await _profileService.UpdateProfile(profileUpdateDto);
+            return Ok(response);
         }
     }
 }

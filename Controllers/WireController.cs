@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using trading_app.dto.Wire;
 using trading_app.interfaces;
-using trading_app.Validator.Wire;
+
 
 namespace trading_app.Controllers
 {
@@ -25,30 +22,16 @@ namespace trading_app.Controllers
         [Authorize]
         public async Task<ActionResult<WireDto>> CreateWire(AddWireDto addWireDto)
         {
-            try
-            {
-                var response = await _wireService.CreateWire(addWireDto);
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var response = await _wireService.CreateWire(addWireDto);
+            return Ok(response);   
         }
 
         [HttpGet("current_balance")]
         [Authorize]
         public async Task<ActionResult<decimal>> CurrentBalance()
-        {
-            try
-            {
-                var response = await _wireService.CurrentBalance();
-                return Ok(response);
-            }
-            catch
-            {
-                return BadRequest();
-            }
+        {  
+            var response = await _wireService.CurrentBalance();
+            return Ok(response);   
         }
     }
 }

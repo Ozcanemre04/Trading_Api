@@ -10,7 +10,8 @@ namespace trading_app.models
         public required string LastName {get;set;}
         public required string Adress {get;set;}
 
-        public RefreshToken? Refreshtoken {get; set;}
+        public string? Refreshtoken {get;set;} = string.Empty;
+        public DateTime RefreshTokenExpireTime {get;set;}
 
         public ICollection<Wire>? Wires {get;set;}
         public ICollection<Trade>? Trades {get;set;}
