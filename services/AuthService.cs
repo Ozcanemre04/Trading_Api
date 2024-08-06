@@ -66,7 +66,6 @@ namespace trading_app.services
 
             registerResponseDto.IsSucceed = true;
             registerResponseDto.Message = "Success: user is created";
-
             return registerResponseDto;
         }
         //login
@@ -74,7 +73,6 @@ namespace trading_app.services
         {
             var response = new LoginResponseDto();
             var Identity = await _userManager.FindByEmailAsync(loginDto.Email!) ?? throw new NotFoundException("user doesn't exist");
-
 
             var verifyPassword = await _userManager.CheckPasswordAsync(Identity, loginDto.Password!);
             if (!verifyPassword)
@@ -90,7 +88,6 @@ namespace trading_app.services
                 throw new BadRequestException(string.Join("|", errorMessage));
             }
 
-
             string token = _tokenService.GenerateToken(Identity);
             response.Message = "Success";
             response.AccessToken = token;
@@ -103,8 +100,6 @@ namespace trading_app.services
         }
 
 
-
-
         //refreshToken
         public async Task<LoginResponseDto> RefreshToken(RefreshTokenDto refreshTokenDto)
         {
@@ -114,6 +109,7 @@ namespace trading_app.services
 
             var principal = _tokenService.GetTokenPrincipal(refreshTokenDto.AccessToken);
             var response = new LoginResponseDto();
+            
             if (principal.Identity.Name is null)
             {
                 throw new BadRequestException("identity is null");
@@ -131,11 +127,7 @@ namespace trading_app.services
             await _userManager.UpdateAsync(Identity);
 
             return response;
-
-
         }
-
-        
 
 
     }

@@ -39,7 +39,7 @@ namespace trading_app.Controllers
         [Authorize]
         public async Task<ActionResult<LoginResponseDto>> RefreshToken([FromBody] RefreshTokenDto refreshTokenDto)
         {
-           
+                
                 var response = await _authServices.RefreshToken(refreshTokenDto);
                 return Ok(response);
            
