@@ -25,6 +25,7 @@ builder.Services.AddTransient<IAuthServices,AuthService>();
 builder.Services.AddTransient<IWireService,WireService>();
 builder.Services.AddTransient<ITradeService,TradeService>();
 builder.Services.AddTransient<IProfileService,ProfileService>();
+builder.Services.AddTransient<ITokenService,TokenService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
