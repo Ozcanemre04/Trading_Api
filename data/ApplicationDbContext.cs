@@ -20,14 +20,17 @@ namespace trading_app.data
               modelBuilder.Entity<ApplicationUser>()
                           .HasKey(i=>i.Id);
 
-
-            modelBuilder.Entity<ApplicationUser>()
+             modelBuilder.Entity<Wire>()
+                         .Property(i => i.Amount)
+                         .HasColumnType("decimal(20,2)");
+                         
+              modelBuilder.Entity<ApplicationUser>()
                         .HasMany<Wire>(w => w.Wires)
                         .WithOne(user => user.applicationUser)
                         .HasForeignKey(key => key.UserId)
                         .IsRequired();
 
-            modelBuilder.Entity<ApplicationUser>()
+              modelBuilder.Entity<ApplicationUser>()
                         .HasMany<Trade>(w => w.Trades)
                         .WithOne(user => user.applicationUser)
                         .HasForeignKey(key => key.UserId);  

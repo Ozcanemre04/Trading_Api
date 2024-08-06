@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using trading_app.dto;
 using trading_app.dto.trade;
 using trading_app.interfaces;
 using trading_app.Validator.Trade;
@@ -22,18 +23,17 @@ namespace trading_app.Controllers
 
         [HttpGet("index")]
         [Authorize]
-        public async Task<ActionResult<TradeDto>> AllTrade()
+        public async Task<ActionResult<PageDto<TradeDto>>> AllTrade([FromQuery] int pageNumber,[FromQuery] int pageSize)
         {
-            var response = await _tradeService.AllTrades();
+            var response = await _tradeService.AllTrades(pageNumber,pageSize);
             return Ok(response);
         }
 
         [HttpGet("{id:Guid}")]
         [Authorize]
         public async Task<ActionResult<TradeDto>> OneTrade([FromRoute] Guid id)
-        {
-
-            return Ok(await _tradeService.GetOneTrade(id));
+        {     
+            return Ok(await _tradeService.GetOneTrade(id));      
         }
 
         [HttpGet("open_trade")]

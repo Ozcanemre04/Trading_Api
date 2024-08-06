@@ -4,6 +4,7 @@ using System.Text.Json;
 using NotFoundException = trading_app.exceptions.NotFoundException;
 using BadRequestException = trading_app.exceptions.BadRequestException;
 using UnauthorizedAccessException = trading_app.exceptions.UnauthorizedAccessException;
+using Serilog;
 
 namespace trading_app.Middleware;
 
@@ -17,8 +18,9 @@ public class GlobalExceptionHandlingMiddleware
 
         public async Task Invoke(HttpContext context){
             try
-            {
+            {   
                 await _next(context);
+                
             }
             catch (Exception ex)
             {

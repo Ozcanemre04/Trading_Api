@@ -38,20 +38,18 @@ namespace trading_app.services
         {
             var userAlreadyExist = await _userManager.FindByEmailAsync(registerDto.Email!);
             var UsernameTaken = await _userManager.FindByNameAsync(registerDto.Username!);
-            
-            
 
             if (userAlreadyExist != null)
             {
                 throw new BadRequestException("email already exist");
             }
-            if(UsernameTaken != null)
+            if (UsernameTaken != null)
             {
-               throw new BadRequestException("UserName already taken ");
-            } 
+                throw new BadRequestException("UserName already taken ");
+            }
             var identityUser = _mapper.Map<ApplicationUser>(registerDto);
             var result = await _userManager.CreateAsync(identityUser, registerDto.Password!);
-            
+
             var validator = new RegisterValidator();
             var validationResult = await validator.ValidateAsync(registerDto);
             if (!validationResult.IsValid)
@@ -85,14 +83,14 @@ namespace trading_app.services
         {
             var response = new LoginResponseDto();
             var Identity = await _userManager.FindByEmailAsync(loginDto.Email!) ?? throw new NotFoundException("user doesn't exist");
-            
+
 
             var verifyPassword = await _userManager.CheckPasswordAsync(Identity, loginDto.Password!);
             if (!verifyPassword)
             {
                 throw new BadRequestException("wrong password");
             };
-            
+
             var validator = new LoginValidator();
             var validationResult = await validator.ValidateAsync(loginDto);
             if (!validationResult.IsValid)
@@ -100,10 +98,10 @@ namespace trading_app.services
                 var errorMessage = validationResult.Errors.Select(error => error.ErrorMessage).ToList();
                 throw new BadRequestException(string.Join("|", errorMessage));
             }
-            
+
 
             string token = this.GenerateToken(Identity);
-            response.Message ="Success";
+            response.Message = "Success";
             response.AccessToken = token;
             response.refreshToken = this.GenerateRefreshToken();
 
@@ -121,18 +119,19 @@ namespace trading_app.services
         {
             var userid = _httpContextAccessor!.HttpContext!.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
             var Identity = await _userManager.FindByIdAsync(userid) ?? throw new NotFoundException("user doesn't exist");
-            
+
 
             var principal = GetTokenPrincipal(refreshTokenDto.AccessToken);
             var response = new LoginResponseDto();
-            if(principal.Identity.Name is null){
+            if (principal.Identity.Name is null)
+            {
                 throw new BadRequestException("identity is null");
             }
-            if(Identity is null || Identity.Refreshtoken != refreshTokenDto.refreshToken || Identity.RefreshTokenExpireTime < DateTime.Now)
+            if (Identity is null || Identity.Refreshtoken != refreshTokenDto.refreshToken || Identity.RefreshTokenExpireTime < DateTime.Now)
             {
                 throw new BadRequestException("wrong refresh token or refreshToken expired");
             }
-            response.Message ="Success";
+            response.Message = "Success";
             response.AccessToken = this.GenerateToken(Identity);
             response.refreshToken = this.GenerateRefreshToken();
 
@@ -141,7 +140,7 @@ namespace trading_app.services
             await _userManager.UpdateAsync(Identity);
 
             return response;
-      
+
 
         }
 
@@ -159,13 +158,13 @@ namespace trading_app.services
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("JWT:Key").Value));
             var validation = new TokenValidationParameters
             {
-              IssuerSigningKey = securityKey,
-              ValidateLifetime = false,
-              ValidateActor = false,
-              ValidateIssuer = false,
-              ValidateAudience = false,
+                IssuerSigningKey = securityKey,
+                ValidateLifetime = false,
+                ValidateActor = false,
+                ValidateIssuer = false,
+                ValidateAudience = false,
             };
-            return new JwtSecurityTokenHandler().ValidateToken(token,validation,out _);
+            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
         }
 
         private string GenerateToken(ApplicationUser user)
@@ -192,6 +191,6 @@ namespace trading_app.services
             return token;
         }
 
-        
+
     }
 }

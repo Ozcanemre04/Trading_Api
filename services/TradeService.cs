@@ -10,6 +10,7 @@ using Serilog;
 using Newtonsoft.Json;
 using trading_app.Validator.Trade;
 using trading_app.exceptions;
+using trading_app.dto;
 
 namespace trading_app.services
 {
@@ -33,12 +34,22 @@ namespace trading_app.services
 
         }
 
-        public async Task<IEnumerable<TradeDto>> AllTrades()
+        public async Task<PageDto<TradeDto>> AllTrades(int pageNumber, int pageSize)
         {
             string userId = GetUserId();
-            var allTrades = await _dbcontext.Trades.Where(x => x.UserId == userId).ToListAsync();
+            var count = await _dbcontext.Trades.Where(x => x.UserId == userId).CountAsync();
+            var allTrades = await _dbcontext.Trades.Where(x => x.UserId == userId)
+                                            .Skip((pageNumber-1) * pageSize)
+                                            .Take(pageSize).ToListAsync();
             var tradesDto = allTrades.Select(trade => _mapper.Map<TradeDto>(trade));
-            return tradesDto;
+            PageDto<TradeDto> pageDto = new  PageDto<TradeDto>{
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalPages = count / pageSize,
+                TotalRecords = count,
+                Data = tradesDto
+            };
+            return pageDto;
         }
 
         public async Task<TradeDto> GetOneTrade(Guid id)
