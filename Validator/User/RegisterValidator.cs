@@ -48,6 +48,13 @@ namespace trading_app.Validator.User
             .NotNull()
             .WithMessage("Username is required")
             .Matches(@"^[A-Z][A-Za-z0-9_]*$").WithMessage("Invalid Username: first letter must be uppercase");
+
+            RuleFor(u=>u.Password)
+            .NotNull()
+            .NotEmpty()
+            .WithMessage("password is required")
+            .MinimumLength(5)
+            .WithMessage("the minimun length of password must be 5");
         }
     }
 }

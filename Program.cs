@@ -24,8 +24,9 @@ builder.Services.AddHttpClient();
 builder.Services.AddTransient<IAuthServices,AuthService>();
 builder.Services.AddTransient<IWireService,WireService>();
 builder.Services.AddTransient<ITradeService,TradeService>();
-builder.Services.AddTransient<IProfileService,ProfileService>();
+builder.Services.AddScoped<IProfileService,ProfileService>();
 builder.Services.AddTransient<ITokenService,TokenService>();
+builder.Services.AddScoped<IEmailService,EmailService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -45,7 +46,7 @@ options.Password.RequireDigit=false;
 options.Password.RequireLowercase=false;
 options.Password.RequireUppercase=false;
 options.Password.RequireNonAlphanumeric=false;
-options.SignIn.RequireConfirmedEmail=false;
+options.SignIn.RequireConfirmedEmail=true;
 });
 string key = builder.Configuration.GetSection("JWT:Key").Value ?? "";
 

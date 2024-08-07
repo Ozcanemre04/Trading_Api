@@ -3,8 +3,9 @@ using System.Net;
 using System.Text.Json;
 using NotFoundException = trading_app.exceptions.NotFoundException;
 using BadRequestException = trading_app.exceptions.BadRequestException;
-using UnauthorizedAccessException = trading_app.exceptions.UnauthorizedAccessException;
+
 using Serilog;
+using trading_app.exceptions;
 
 namespace trading_app.Middleware;
 
@@ -46,7 +47,7 @@ public class GlobalExceptionHandlingMiddleware
                stackTrace = ex.StackTrace;
                message = ex.Message;
         }
-        else if (exceptionType == typeof(UnauthorizedAccessException)){
+        else if (exceptionType == typeof(UnauthorizedException)){
                status= HttpStatusCode.Unauthorized;
                stackTrace = ex.StackTrace;
                message = ex.Message;
